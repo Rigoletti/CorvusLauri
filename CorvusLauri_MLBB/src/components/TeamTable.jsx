@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../style/TeamTable.css'; 
+import '../style/TeamTable.css';
 
 const TeamTable = () => {
     const [players, setPlayers] = useState([
@@ -11,10 +11,8 @@ const TeamTable = () => {
         { id: 5, name: 'Рома', availability: Array(7).fill({ start: '', end: '' }) },
         { id: 6, name: 'Денис', availability: Array(7).fill({ start: '', end: '' }) },
     ]);
-
     const [newPlayerName, setNewPlayerName] = useState('');
     const [error, setError] = useState('');
-
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
     const generateTimeOptions = () => {
@@ -35,6 +33,9 @@ const TeamTable = () => {
             if (player.id === playerId) {
                 const newAvailability = [...player.availability];
                 newAvailability[dayIndex] = { ...newAvailability[dayIndex], [field]: value };
+                if (field === 'start') {
+                    newAvailability[dayIndex].end = '';
+                }
                 return { ...player, availability: newAvailability };
             }
             return player;
@@ -47,7 +48,6 @@ const TeamTable = () => {
             setError('Введите имя игрока');
             return;
         }
-
         const newPlayer = {
             id: players.length + 1,
             name: newPlayerName,
@@ -64,52 +64,50 @@ const TeamTable = () => {
     };
 
     const timeToMinutes = (time) => {
-        if (!time) return 0;
+        if (!time) return null;
         const [hours, minutes] = time.split(':').map(Number);
         return hours * 60 + minutes;
     };
 
-    const isTimeOverlap = (start1, end1, start2, end2) => {
-        const start1Min = timeToMinutes(start1);
-        const end1Min = timeToMinutes(end1);
-        const start2Min = timeToMinutes(start2);
-        const end2Min = timeToMinutes(end2);
+    const getMaxSimultaneousPlayers = (dayIndex) => {
+        const intervals = players
+            .map(player => player.availability[dayIndex])
+            .filter(({ start, end }) => start && end)
+            .map(({ start, end }) => ({
+                start: timeToMinutes(start),
+                end: timeToMinutes(end),
+            }));
 
-        if (!start1Min || !end1Min || !start2Min || !end2Min) return false;
-        return start1Min < end2Min && start2Min < end1Min;
+        if (intervals.length === 0) return 0;
+
+        const minTime = Math.min(...intervals.map(interval => interval.start));
+        const maxTime = Math.max(...intervals.map(interval => interval.end));
+
+        let maxCount = 0;
+
+        for (let time = minTime; time <= maxTime; time += 30) {
+            let currentCount = 0;
+            intervals.forEach(interval => {
+                if (interval.start <= time && time < interval.end) {
+                    currentCount++;
+                }
+            });
+            maxCount = Math.max(maxCount, currentCount);
+        }
+
+        return maxCount;
     };
 
-    const getCellColor = (playerId, dayIndex) => {
-        const player = players.find(p => p.id === playerId);
-        const { start, end } = player.availability[dayIndex];
-
-        if (!start || !end) return '';
-
-        const overlappingPlayers = players.filter(p => {
-            if (p.id === playerId) return false;
-            const { start: pStart, end: pEnd } = p.availability[dayIndex];
-            return isTimeOverlap(start, end, pStart, pEnd);
-        }).length;
-
-        if (overlappingPlayers >= 4) return 'bg-success';
-        if (overlappingPlayers === 3) return 'bg-warning';
-        return '';
-    };
-
-    // Функция для проверки, сколько игроков доступно в конкретный день
-    const getAvailablePlayersCount = (dayIndex) => {
-        return players.filter(player => {
-            const { start, end } = player.availability[dayIndex];
-            return start && end; // Игрок доступен, если указано время начала и конца
-        }).length;
-    };
-
-    // Функция для определения цвета заголовка дня
     const getDayHeaderColor = (dayIndex) => {
-        const availablePlayers = getAvailablePlayersCount(dayIndex);
-        if (availablePlayers >= 5) return 'bg-success'; // Зеленый, если доступно 5 или более игроков
-        if (availablePlayers < 4) return 'bg-danger'; // Красный, если доступно меньше 4 игроков
-        return ''; // По умолчанию
+        const maxSimultaneousPlayers = getMaxSimultaneousPlayers(dayIndex);
+        if (maxSimultaneousPlayers >= 5) return 'bg-success'; 
+        return 'bg-danger'; 
+    };
+
+    const getFilteredEndTimeOptions = (startTime) => {
+        if (!startTime) return timeOptions;
+        const startMinutes = timeToMinutes(startTime);
+        return timeOptions.filter(time => timeToMinutes(time) > startMinutes);
     };
 
     return (
@@ -148,7 +146,7 @@ const TeamTable = () => {
                             <tr key={player.id}>
                                 <td className="fw-bold">{player.name}</td>
                                 {player.availability.map((time, dayIndex) => (
-                                    <td key={dayIndex} className={`align-middle ${getCellColor(player.id, dayIndex)}`}>
+                                    <td key={dayIndex} className="align-middle">
                                         <div className="d-flex flex-column gap-2">
                                             <select
                                                 className="form-select form-select-sm"
@@ -168,7 +166,7 @@ const TeamTable = () => {
                                                 onChange={(e) => handleAvailabilityChange(player.id, dayIndex, 'end', e.target.value)}
                                             >
                                                 <option value="">Конец</option>
-                                                {timeOptions.map((timeOption, index) => (
+                                                {getFilteredEndTimeOptions(time.start).map((timeOption, index) => (
                                                     <option key={index} value={timeOption}>
                                                         {timeOption}
                                                     </option>
