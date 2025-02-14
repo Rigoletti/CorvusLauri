@@ -1,0 +1,98 @@
+/* Основные стили */
+body {
+  background-color: #f8f9fa;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  color: #0d6efd;
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.table {
+  margin-top: 20px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.table thead th {
+  background-color: #0d6efd;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+}
+
+.table tbody tr:hover {
+  background-color: #f1f1f1;
+  transition: background-color 0.3s ease;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-danger:hover {
+  background-color: #bb2d3b;
+}
+
+.form-control {
+  border-radius: 5px;
+  border: 1px solid #ced4da;
+  transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.input-group {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+      opacity: 0;
+  }
+  to {
+      opacity: 1;
+  }
+}
+
+.table tbody tr {
+  animation: fadeIn 0.5s ease;
+}

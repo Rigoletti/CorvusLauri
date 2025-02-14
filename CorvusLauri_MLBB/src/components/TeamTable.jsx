@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import '../style/TeamTable.css'; 
 
 const TeamTable = () => {
     const [players, setPlayers] = useState([
@@ -11,7 +12,8 @@ const TeamTable = () => {
         { id: 6, name: 'Денис', availability: Array(7).fill({ start: '', end: '' }) },
     ]);
 
-    const [newPlayerName, setNewPlayerName] = useState(''); 
+    const [newPlayerName, setNewPlayerName] = useState('');
+    const [error, setError] = useState('');
 
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -27,6 +29,7 @@ const TeamTable = () => {
     };
 
     const timeOptions = generateTimeOptions();
+
     const handleAvailabilityChange = (playerId, dayIndex, field, value) => {
         const newPlayers = players.map(player => {
             if (player.id === playerId) {
@@ -41,7 +44,7 @@ const TeamTable = () => {
 
     const addPlayer = () => {
         if (!newPlayerName.trim()) {
-            alert('Пожалуйста, введите имя игрока');
+            setError('Введите имя игрока');
             return;
         }
 
@@ -51,7 +54,8 @@ const TeamTable = () => {
             availability: Array(7).fill({ start: '', end: '' }),
         };
         setPlayers([...players, newPlayer]);
-        setNewPlayerName(''); 
+        setNewPlayerName('');
+        setError('');
     };
 
     const removePlayer = (playerId) => {
@@ -71,7 +75,7 @@ const TeamTable = () => {
         const start2Min = timeToMinutes(start2);
         const end2Min = timeToMinutes(end2);
 
-        if (!start1Min || !end1Min || !start2Min || !end2Min) return false; 
+        if (!start1Min || !end1Min || !start2Min || !end2Min) return false;
         return start1Min < end2Min && start2Min < end1Min;
     };
 
@@ -87,38 +91,48 @@ const TeamTable = () => {
             return isTimeOverlap(start, end, pStart, pEnd);
         }).length;
 
-        if (overlappingPlayers >= 4) return 'bg-success'; 
-        if (overlappingPlayers === 3) return 'bg-warning'; 
-        return ''; 
+        if (overlappingPlayers >= 4) return 'bg-success';
+        if (overlappingPlayers === 3) return 'bg-warning';
+        return '';
     };
 
-    const getDayHeaderColor = (dayIndex) => {
-        const availablePlayers = players.filter(player => {
+    // Функция для проверки, сколько игроков доступно в конкретный день
+    const getAvailablePlayersCount = (dayIndex) => {
+        return players.filter(player => {
             const { start, end } = player.availability[dayIndex];
-            return start && end;
+            return start && end; // Игрок доступен, если указано время начала и конца
         }).length;
-        if (availablePlayers < 4) return 'bg-danger'; 
-        return '';
+    };
+
+    // Функция для определения цвета заголовка дня
+    const getDayHeaderColor = (dayIndex) => {
+        const availablePlayers = getAvailablePlayersCount(dayIndex);
+        if (availablePlayers >= 5) return 'bg-success'; // Зеленый, если доступно 5 или более игроков
+        if (availablePlayers < 4) return 'bg-danger'; // Красный, если доступно меньше 4 игроков
+        return ''; // По умолчанию
     };
 
     return (
         <div className="container mt-5">
-            <h1 className="text-center mb-4 text-primary">Расписание команды</h1>
-            <div className="mb-3">
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Введите имя нового игрока"
-                    value={newPlayerName}
-                    onChange={(e) => setNewPlayerName(e.target.value)}
-                />
-                <button className="btn btn-primary mt-2" onClick={addPlayer}>
-                    Добавить игрока
-                </button>
+            <h1 className="text-center mb-4 text-primary fw-bold">Расписание команды</h1>
+            <div className="mb-4">
+                <div className="input-group">
+                    <input
+                        type="text"
+                        className={`form-control ${error ? 'is-invalid' : ''}`}
+                        placeholder="Введите имя нового игрока"
+                        value={newPlayerName}
+                        onChange={(e) => setNewPlayerName(e.target.value)}
+                    />
+                    <button className="btn btn-primary" onClick={addPlayer}>
+                        Добавить игрока
+                    </button>
+                </div>
+                {error && <div className="text-danger mt-2">{error}</div>}
             </div>
-            <div style={{ overflowX: 'auto' }}>
-                <table className="table table-bordered table-hover" style={{ minWidth: '800px' }}>
-                    <thead>
+            <div className="table-responsive">
+                <table className="table table-bordered table-hover table-striped">
+                    <thead className="table-dark">
                         <tr>
                             <th style={{ width: '150px' }}>Игрок</th>
                             {days.map((day, index) => (
@@ -132,12 +146,10 @@ const TeamTable = () => {
                     <tbody>
                         {players.map(player => (
                             <tr key={player.id}>
-                                <td>
-                                    <div>{player.name}</div>
-                                </td>
+                                <td className="fw-bold">{player.name}</td>
                                 {player.availability.map((time, dayIndex) => (
-                                    <td key={dayIndex} className={getCellColor(player.id, dayIndex)}>
-                                        <div className="mb-2">
+                                    <td key={dayIndex} className={`align-middle ${getCellColor(player.id, dayIndex)}`}>
+                                        <div className="d-flex flex-column gap-2">
                                             <select
                                                 className="form-select form-select-sm"
                                                 value={time.start}
@@ -150,8 +162,6 @@ const TeamTable = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                        </div>
-                                        <div className="mb-2">
                                             <select
                                                 className="form-select form-select-sm"
                                                 value={time.end}
@@ -169,7 +179,7 @@ const TeamTable = () => {
                                 ))}
                                 <td>
                                     <button
-                                        className="btn btn-danger btn-sm"
+                                        className="btn btn-danger btn-sm w-100"
                                         onClick={() => removePlayer(player.id)}
                                     >
                                         Удалить
