@@ -4,15 +4,16 @@ import '../style/TeamTable.css';
 
 const TeamTable = () => {
     const [players, setPlayers] = useState([
-        { id: 1, name: 'Тая', availability: Array(7).fill({ start: '', end: '' }) },
-        { id: 2, name: 'Нолик', availability: Array(7).fill({ start: '', end: '' }) },
-        { id: 3, name: 'Василий', availability: Array(7).fill({ start: '', end: '' }) },
-        { id: 4, name: 'Давид', availability: Array(7).fill({ start: '', end: '' }) },
-        { id: 5, name: 'Рома', availability: Array(7).fill({ start: '', end: '' }) },
-        { id: 6, name: 'Денис', availability: Array(7).fill({ start: '', end: '' }) },
+        { id: 1, name: 'Тая', availability: Array(7).fill({ start: '', end: '', isDayOff: false }) },
+        { id: 2, name: 'Нолик', availability: Array(7).fill({ start: '', end: '', isDayOff: false }) },
+        { id: 3, name: 'Василий', availability: Array(7).fill({ start: '', end: '', isDayOff: false }) },
+        { id: 4, name: 'Давид', availability: Array(7).fill({ start: '', end: '', isDayOff: false }) },
+        { id: 5, name: 'Рома', availability: Array(7).fill({ start: '', end: '', isDayOff: false }) },
+        { id: 6, name: 'Денис', availability: Array(7).fill({ start: '', end: '', isDayOff: false }) },
     ]);
     const [newPlayerName, setNewPlayerName] = useState('');
     const [error, setError] = useState('');
+
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
     const generateTimeOptions = () => {
@@ -43,6 +44,22 @@ const TeamTable = () => {
         setPlayers(newPlayers);
     };
 
+    const handleDayOffChange = (playerId, dayIndex, value) => {
+        const newPlayers = players.map(player => {
+            if (player.id === playerId) {
+                const newAvailability = [...player.availability];
+                newAvailability[dayIndex] = { ...newAvailability[dayIndex], isDayOff: value };
+                if (value) {
+                    newAvailability[dayIndex].start = '';
+                    newAvailability[dayIndex].end = '';
+                }
+                return { ...player, availability: newAvailability };
+            }
+            return player;
+        });
+        setPlayers(newPlayers);
+    };
+
     const addPlayer = () => {
         if (!newPlayerName.trim()) {
             setError('Введите имя игрока');
@@ -51,7 +68,7 @@ const TeamTable = () => {
         const newPlayer = {
             id: players.length + 1,
             name: newPlayerName,
-            availability: Array(7).fill({ start: '', end: '' }),
+            availability: Array(7).fill({ start: '', end: '', isDayOff: false }),
         };
         setPlayers([...players, newPlayer]);
         setNewPlayerName('');
@@ -72,19 +89,15 @@ const TeamTable = () => {
     const getMaxSimultaneousPlayers = (dayIndex) => {
         const intervals = players
             .map(player => player.availability[dayIndex])
-            .filter(({ start, end }) => start && end)
+            .filter(({ start, end, isDayOff }) => !isDayOff && start && end)
             .map(({ start, end }) => ({
                 start: timeToMinutes(start),
                 end: timeToMinutes(end),
             }));
-
         if (intervals.length === 0) return 0;
-
         const minTime = Math.min(...intervals.map(interval => interval.start));
         const maxTime = Math.max(...intervals.map(interval => interval.end));
-
         let maxCount = 0;
-
         for (let time = minTime; time <= maxTime; time += 30) {
             let currentCount = 0;
             intervals.forEach(interval => {
@@ -94,7 +107,6 @@ const TeamTable = () => {
             });
             maxCount = Math.max(maxCount, currentCount);
         }
-
         return maxCount;
     };
 
@@ -129,12 +141,12 @@ const TeamTable = () => {
                 {error && <div className="text-danger mt-2">{error}</div>}
             </div>
             <div className="table-responsive">
-                <table className="table table-bordered table-hover table-striped">
+                <table className="table table-bordered table-hover table-striped small-table">
                     <thead className="table-dark">
                         <tr>
                             <th style={{ width: '150px' }}>Игрок</th>
                             {days.map((day, index) => (
-                                <th key={index} className={`text-center ${getDayHeaderColor(index)}`}>
+                                <th key={index} className={`text-center ${getDayHeaderColor(index)}`} style={{ minWidth: '100px' }}>
                                     {day}
                                 </th>
                             ))}
@@ -146,12 +158,26 @@ const TeamTable = () => {
                             <tr key={player.id}>
                                 <td className="fw-bold">{player.name}</td>
                                 {player.availability.map((time, dayIndex) => (
-                                    <td key={dayIndex} className="align-middle">
-                                        <div className="d-flex flex-column gap-2">
+                                    <td key={dayIndex} className="align-middle" style={{ padding: '0.25rem' }}>
+                                        <div className="d-flex flex-column gap-2" style={{ fontSize: '0.875rem' }}>
+                                            {/* Чекбокс для выбора выходного дня */}
+                                            <div className="form-check mb-2">
+                                                <input 
+                                                    type="checkbox"
+                                                    className="form-check-input"
+                                                    checked={time.isDayOff}
+                                                    onChange={(e) => handleDayOffChange(player.id, dayIndex, e.target.checked)}
+                                                />
+                                                <label className="form-check-label" style={{ fontSize: '0.875rem' }}>Выходной</label>
+                                            </div>
+
+                                            {/* Поля для выбора времени */}
                                             <select
                                                 className="form-select form-select-sm"
                                                 value={time.start}
                                                 onChange={(e) => handleAvailabilityChange(player.id, dayIndex, 'start', e.target.value)}
+                                                disabled={time.isDayOff}
+                                                style={{ fontSize: '0.875rem' }}
                                             >
                                                 <option value="">Начало</option>
                                                 {timeOptions.map((timeOption, index) => (
@@ -164,6 +190,8 @@ const TeamTable = () => {
                                                 className="form-select form-select-sm"
                                                 value={time.end}
                                                 onChange={(e) => handleAvailabilityChange(player.id, dayIndex, 'end', e.target.value)}
+                                                disabled={time.isDayOff}
+                                                style={{ fontSize: '0.875rem' }}
                                             >
                                                 <option value="">Конец</option>
                                                 {getFilteredEndTimeOptions(time.start).map((timeOption, index) => (
